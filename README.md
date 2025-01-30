@@ -2,7 +2,7 @@
 ## Triggerbot
 - Plán mít do dvou týdnů hotovo
 - Zjistit jestli se dívám na nepřítele přes CharacterID
-- Najít trigger funkci u zbraní, která se zavolá pokud se jako hráč dívám na nepřítele
+- Najít trigger funkci u zbraní, která bude zavolána pokud se jako hráč dívám na nepřítele
   - [ ] Adresa CharacterID
     - [ ] Rozlišit spoluhráče od nepřítele
   - [ ] Adresa weapon trigger
@@ -12,7 +12,7 @@
 ## Wallhack
 - Chtěl bych wallhack dělat po triggerbotu, ale je možné, že budu nejdříve dělat aimbot
 - Vužít adresu CharacterID a rozšířit jí na celé lobby
-- Najít adresu pozice nepřítele okolo, které můžu vykreslit obdelník na jejich zvýraznění
+- Najít adresu pozice nepřítele, okolo které můžu vykreslit obdelník na jejich zvýraznění
     - [ ] Rozlišení všech hráčů v lobby
     - [ ] Adresa pozice nepřátel
     - [ ] Adresa _Draw funkce na zobrazení 2D tvarů
