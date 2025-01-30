@@ -1,6 +1,6 @@
 # Maturita
 ## Triggerbot
-- Plán do dvou týdnů mít hotovo
+- Plán mít do dvou týdnů hotovo
 - Zjistit jestli se dívám na nepřítele přes CharacterID
 - Najít trigger funkci u zbraní, která se zavolá pokud se jako hráč dívám na nepřítele
   - [ ] Adresa CharacterID
