@@ -1,87 +1,287 @@
-﻿// Maturita_OA.cpp : This file contains the 'main' function. Program execution begins and ends there.
-//
-
-#include <iostream>
+﻿#include <iostream>
+#include <cmath>
 #include <windows.h>
+#include <tlhelp32.h>
+#include "game.h"
+#include "memory.h"   
 
-// Pomocná funkce pro čtení paměti
-template <typename T>
-T ReadMemory(HANDLE hProcess, DWORD address) {
-    T value;
-    ReadProcessMemory(hProcess, (LPCVOID)address, &value, sizeof(T), nullptr);
-    return value;
+uintptr_t GetBaseAddress(DWORD processID, const char* moduleName) {
+	uintptr_t baseAddress = 0;
+	HANDLE hSnap = CreateToolhelp32Snapshot(TH32CS_SNAPMODULE | TH32CS_SNAPMODULE32, processID);
+	if (hSnap != INVALID_HANDLE_VALUE) {
+		MODULEENTRY32W modEntry;
+		modEntry.dwSize = sizeof(modEntry);
+		if (Module32FirstW(hSnap, &modEntry)) {
+			do {
+				if (_wcsicmp(modEntry.szModule, std::wstring(moduleName, moduleName + strlen(moduleName)).c_str()) == 0) {
+					baseAddress = (uintptr_t)modEntry.modBaseAddr;
+					break;
+				}
+			} while (Module32NextW(hSnap, &modEntry));
+		}
+	}
+	CloseHandle(hSnap);
+	return baseAddress;
 }
-bool IsEnemy(int myTeam, int otherTeam) {
-    // Ignorovat prázdné sloty (0)
-    if (otherTeam == 0) {
-        return false;
-    }
-    // Hráče s jiným tým value je nepřítel
-    return otherTeam != myTeam;
+
+// Function to calculate the distance between two positions
+float CalculateDistance(const vec3_t& pos1, const vec3_t& pos2) {
+	return std::sqrt(
+		std::pow(pos2.x - pos1.x, 2) +
+		std::pow(pos2.y - pos1.y, 2) +
+		std::pow(pos2.z - pos1.z, 2)
+	);
 }
+
+// Function to calculate the directional vector from pos1 to pos2
+vec3_t CalculateDirectionalVector(const vec3_t& pos1, const vec3_t& pos2) {
+	vec3_t direction;
+	direction.x = pos2.x - pos1.x;
+	direction.y = pos2.y - pos1.y;
+	direction.z = pos2.z - pos1.z;
+	return direction;
+}
+
+// Function to normalize a vector (convert it to a unit vector)
+vec3_t NormalizeVector(const vec3_t& vec) {
+	float length = std::sqrt(vec.x * vec.x + vec.y * vec.y + vec.z * vec.z);
+	vec3_t normalized;
+	normalized.x = vec.x / length;
+	normalized.y = vec.y / length;
+	normalized.z = vec.z / length;
+	return normalized;
+}
+
+
+#ifndef M_PI
+#define M_PI 3.14159265358979323846
+#endif
+
+// Function to calculate the yaw angle from a directional vector
+float CalculateYaw(const vec3_t& direction) {
+	// Yaw is the angle in the X-Y plane (horizontal plane)
+	return std::atan2(direction.y, direction.x) * (180.0f / M_PI); // Convert radians to degrees
+}
+
+// Function to calculate the pitch angle from a directional vector
+float CalculatePitch(const vec3_t& direction) {
+	// Pitch is the angle in the vertical plane
+	float horizontalDistance = std::sqrt(direction.x * direction.x + direction.y * direction.y);
+	return std::atan2(-direction.z, horizontalDistance) * (180.0f / M_PI); // Convert radians to degrees
+
+
+}
+
+// Function to clamp a value between a minimum and maximum
+float Clamp(float value, float min, float max) {
+	if (value < min) return min;
+	if (value > max) return max;
+	return value;
+}
+
+#define MouseSens 7.0f
+
+// Function to simulate mouse movement
+void MoveMouse(float deltaX, float deltaY) {
+	// Clamp the deltas to the range [-10, 10]
+	deltaX = Clamp(deltaX, -45.0f, 45.0f);
+	deltaY = Clamp(deltaY, -22.5f, 22.5f);
+
+	// Convert the deltas to integers (mouse_event uses integers)
+	int mouseDeltaX = static_cast<int>(deltaX);
+	int mouseDeltaY = static_cast<int>(deltaY);
+
+	// Simulate mouse movement
+	mouse_event(MOUSEEVENTF_MOVE, mouseDeltaX * MouseSens, mouseDeltaY * MouseSens, 0, 0);
+}
+
+
+
+
 
 int main()
 {
-    //td::cout << "Hello World!\n";
+	DWORD processID = 0;
+	HWND hwnd = FindWindowA(nullptr, "OpenArena");
+	if (hwnd == nullptr) {
+		std::cerr << "OpenArena window not found!" << std::endl;
+		return 1;
+	}
+	GetWindowThreadProcessId(hwnd, &processID);
 
-    DWORD processID = 0;
-    HWND hwnd = FindWindowA(nullptr, "OpenArena");
-    if (hwnd == nullptr) {
-        std::cerr << "OpenArena window not found!" << std::endl;
-        return 1;
-    }
-    GetWindowThreadProcessId(hwnd, &processID);
+	// Otevření procesu
+	HANDLE hProcess = OpenProcess(PROCESS_VM_READ, FALSE, processID);
+	if (hProcess == nullptr) {
+		std::cerr << "Failed to open process!" << std::endl;
+		return 1;
+	}
 
-    // Otevření procesu
-    HANDLE hProcess = OpenProcess(PROCESS_VM_READ, FALSE, processID);
-    if (hProcess == nullptr) {
-        std::cerr << "Failed to open process!" << std::endl;
-        return 1;
-    }
+	// Čtení paměti
+	//DWORD baseAddress = GetBaseAddress(processID, "openarena.exe");
+	DWORD baseTeamAddress = 0x0DBDF4A8; // Adresa týmu
+	DWORD offsetBetweenBots = 0x840; //Offset mezi boty
 
-    // Čtení paměti
-    DWORD baseTeamAddress = 0x0D97B4A8; // Adresa týmu
-    DWORD offsetBetweenBots = 0x840; //Offset mezi boty
+	// Calculate the X-coordinate address relative to the player team address
+	DWORD xAddress = baseTeamAddress + (-0xF0); // X-coordinate address (offset -240)
+	DWORD yAddress = xAddress + 4; // Y-coordinate address (4 bytes after X)
+	DWORD zAddress = yAddress + 4; // Z-coordinate address (4 bytes after Y)
 
-    // Read your team value
-    int myTeam = ReadMemory<int>(hProcess, baseTeamAddress);
-    std::cout << "Your Team Value: " << myTeam << std::endl;
-
-
-    // Skenovat paměť pro 15 botů/hráčů, základní maximální počet hráčů v OA je 16
-    for (int i = 0; i < 15; i++) {
-        DWORD botTeamAddress = baseTeamAddress + (i)*offsetBetweenBots;
-        int teamValue = ReadMemory<unsigned char>(hProcess, botTeamAddress);
-        int botTeamValue = ReadMemory<int>(hProcess, botTeamAddress);
-
-        // Zjistit, zda je bot enemy, ally nebo prázdný slot
-        if (IsEnemy(myTeam, botTeamValue)) {
-            std::cout << "Bot " << (i + 1) << " is an ENEMY! Team Value: " << botTeamValue << std::endl;
-        }
-        else if (botTeamValue != 0) {
-            std::cout << "Bot " << (i + 1) << " is an ALLY. Team Value: " << botTeamValue << std::endl;
-        }
-        else {
-            std::cout << "Bot " << (i + 1) << " is an EMPTY SLOT. Team Value: " << botTeamValue << std::endl;
-        }
-    }
+	// Calculate pitch and yaw addresses
+	DWORD pitchAddress = baseTeamAddress + (-0x6C); // Pitch address (offset -0x6C)
+	DWORD yawAddress = pitchAddress + 4; // Yaw address (4 bytes after pitch)
 
 
-    // Clean up
-    CloseHandle(hProcess);
-    return 0;
+
+	// Read your team value
+	int myTeam = ReadMemory<int>(hProcess, baseTeamAddress);
+	std::cout << "Your Team Value: " << myTeam << std::endl;
+
+	// Skenovat paměť pro 15 botů/hráčů, základní maximální počet hráčů v OA je 16
+	for (int i = 0; i < 15; i++) {
+		DWORD botTeamAddress = baseTeamAddress + (i)*offsetBetweenBots;
+		int teamValue = ReadMemory<unsigned char>(hProcess, botTeamAddress);
+		int botTeamValue = ReadMemory<int>(hProcess, botTeamAddress);
+
+		// Zjistit, zda je bot enemy, ally nebo prázdný slot
+		if (IsEnemy(myTeam, botTeamValue)) {
+			std::cout << "Bot " << (i + 1) << " is an ENEMY! Team Value: " << botTeamValue << std::endl;
+		}
+		else if (botTeamValue != 0) {
+			std::cout << "Bot " << (i + 1) << " is an ALLY. Team Value: " << botTeamValue << std::endl;
+		}
+		else {
+			std::cout << "Bot " << (i + 1) << " is an EMPTY SLOT. Team Value: " << botTeamValue << std::endl;
+		}
+	}
+
+	// Continuously read and print the player's position
+	while (true) {
+		// Read the player's position
+		vec3_t position = ReadPosition(hProcess, xAddress);
+
+
+		// Print the player's position
+		std::cout << "Player Position: "
+			<< "X = " << position.x << ", "
+			<< "Y = " << position.y << ", "
+			<< "Z = " << position.z << std::endl;
+
+		// Read pitch and yaw values
+		float pitch = ReadMemory<float>(hProcess, pitchAddress);
+		float yaw = ReadMemory<float>(hProcess, yawAddress);
+		std::cout << "Pitch: " << pitch << ", Yaw: " << yaw << std::endl;
+
+
+		// Variables to track the closest enemy
+		float closestDistance = FLT_MAX; // Initialize with a large value
+		int closestEnemyIndex = -1;
+		vec3_t closestEnemyPosition = { 0, 0, 0 };
+
+
+
+		// Scan for the next 15 players
+		for (int i = 0; i < 15; i++) {
+			// Calculate the team address for the current player
+			DWORD botTeamAddress = baseTeamAddress + (i + 1) * offsetBetweenBots;
+			int botTeamValue = ReadMemory<int>(hProcess, botTeamAddress);
+
+			// Check if the player is an enemy
+			if (IsEnemy(myTeam, botTeamValue)) {
+				std::cout << "Bot " << (i + 1) << " is an ENEMY! Team Value: " << botTeamValue << std::endl;
+			}
+			else if (botTeamValue != 0) {
+				std::cout << "Bot " << (i + 1) << " is an ALLY. Team Value: " << botTeamValue << std::endl;
+			}
+			else {
+				std::cout << "Bot " << (i + 1) << " is an EMPTY SLOT. Team Value: " << botTeamValue << std::endl;
+			}
+
+
+			// Calculate the position address for the current enemy
+			DWORD botPositionAddress = xAddress + (i + 1) * offsetBetweenBots;
+
+			// Read the enemy's position
+			vec3_t botPosition = ReadPosition(hProcess, botPositionAddress);
+
+			// Calculate the distance to the enemy
+			float distance = CalculateDistance(position, botPosition);
+
+
+			// Check if this is the closest enemy
+			if (distance < closestDistance) {
+				closestDistance = distance;
+				closestEnemyIndex = i + 1;
+				closestEnemyPosition = botPosition;
+
+			}
+
+
+			// Print the enemy's position
+			std::cout << "Enemy " << (i + 1) << " Position: "
+				<< "X = " << botPosition.x << ", "
+				<< "Y = " << botPosition.y << ", "
+				<< "Z = " << botPosition.z << std::endl;
+
+		}
+
+
+		// Print the closest enemy's information
+		if (closestEnemyIndex != -1) {
+			// Calculate the directional vector to the closest enemy
+			vec3_t directionToEnemy = CalculateDirectionalVector(position, closestEnemyPosition);
+
+			// Normalize the directional vector (optional)
+			vec3_t normalizedDirection = NormalizeVector(directionToEnemy);
+
+			std::cout << "Closest Enemy: Bot " << closestEnemyIndex << std::endl;
+			std::cout << "Closest Enemy Position: "
+				<< "X = " << closestEnemyPosition.x << ", "
+				<< "Y = " << closestEnemyPosition.y << ", "
+				<< "Z = " << closestEnemyPosition.z << std::endl;
+			std::cout << "Directional Vector to Enemy: "
+				<< "X = " << directionToEnemy.x << ", "
+				<< "Y = " << directionToEnemy.y << ", "
+				<< "Z = " << directionToEnemy.z << std::endl;
+			std::cout << "Normalized Directional Vector: "
+				<< "X = " << normalizedDirection.x << ", "
+				<< "Y = " << normalizedDirection.y << ", "
+				<< "Z = " << normalizedDirection.z << std::endl;
+
+			// Calculate yaw and pitch angles
+			float yawToEnemy = CalculateYaw(directionToEnemy);
+			float pitchToEnemy = CalculatePitch(directionToEnemy);
+
+			std::cout << "Closest Enemy: Bot " << closestEnemyIndex << std::endl;
+			std::cout << "Closest Enemy Position: "
+				<< "X = " << closestEnemyPosition.x << ", "
+				<< "Y = " << closestEnemyPosition.y << ", "
+				<< "Z = " << closestEnemyPosition.z << std::endl;
+			std::cout << "Yaw to Enemy: " << yawToEnemy << " degrees" << std::endl;
+			std::cout << "Pitch to Enemy: " << pitchToEnemy << " degrees" << std::endl;
+
+			// Calculate the required mouse movement
+			float deltaYaw = yawToEnemy - yaw;   // Horizontal movement
+			float deltaPitch = pitchToEnemy - pitch; // Vertical movement
+
+
+			// Simulate mouse movement
+			MoveMouse(-deltaYaw, deltaPitch);
+
+
+		}
+		else {
+			std::cout << "No enemies found!" << std::endl;
+		}
+
+		// Wait for a short time before updating again
+		Sleep(10); // Adjust the delay (in milliseconds) as needed
+
+	}
+
+
+
+	// Clean up
+	CloseHandle(hProcess);
+	return 0;
 }
 
-
-
-
-// Run program: Ctrl + F5 or Debug > Start Without Debugging menu
-// Debug program: F5 or Debug > Start Debugging menu
-
-// Tips for Getting Started: 
-//   1. Use the Solution Explorer window to add/manage files
-//   2. Use the Team Explorer window to connect to source control
-//   3. Use the Output window to see build output and other messages
-//   4. Use the Error List window to view errors
-//   5. Go to Project > Add New Item to create new code files, or Project > Add Existing Item to add existing code files to the project
-//   6. In the future, to open this project again, go to File > Open > Project and select the .sln file
