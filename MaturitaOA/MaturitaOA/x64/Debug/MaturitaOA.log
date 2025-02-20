@@ -1,14 +1,15 @@
 ﻿  MaturitaOA.cpp
-C:\Users\User\source\repos\maturita\MaturitaOA\MaturitaOA\MaturitaOA.cpp(29,18): warning C4244: 'return': conversion from 'double' to 'float', possible loss of data
-C:\Users\User\source\repos\maturita\MaturitaOA\MaturitaOA\MaturitaOA.cpp(63,46): warning C4244: 'return': conversion from 'double' to 'float', possible loss of data
-C:\Users\User\source\repos\maturita\MaturitaOA\MaturitaOA\MaturitaOA.cpp(70,54): warning C4244: 'return': conversion from 'double' to 'float', possible loss of data
-C:\Users\User\source\repos\maturita\MaturitaOA\MaturitaOA\MaturitaOA.cpp(95,69): warning C4244: 'argument': conversion from 'float' to 'DWORD', possible loss of data
-C:\Users\User\source\repos\maturita\MaturitaOA\MaturitaOA\MaturitaOA.cpp(95,44): warning C4244: 'argument': conversion from 'float' to 'DWORD', possible loss of data
+C:\Users\User\source\repos\maturita\MaturitaOA\MaturitaOA\MaturitaOA.cpp(12,18): warning C4244: 'return': conversion from 'double' to 'float', possible loss of data
+C:\Users\User\source\repos\maturita\MaturitaOA\MaturitaOA\MaturitaOA.cpp(46,46): warning C4244: 'return': conversion from 'double' to 'float', possible loss of data
+C:\Users\User\source\repos\maturita\MaturitaOA\MaturitaOA\MaturitaOA.cpp(53,54): warning C4244: 'return': conversion from 'double' to 'float', possible loss of data
+C:\Users\User\source\repos\maturita\MaturitaOA\MaturitaOA\MaturitaOA.cpp(78,69): warning C4244: 'argument': conversion from 'float' to 'DWORD', possible loss of data
+C:\Users\User\source\repos\maturita\MaturitaOA\MaturitaOA\MaturitaOA.cpp(78,44): warning C4244: 'argument': conversion from 'float' to 'DWORD', possible loss of data
+C:\Users\User\source\repos\maturita\MaturitaOA\MaturitaOA\MaturitaOA.cpp(139,30): warning C4312: 'type cast': conversion from 'DWORD' to 'void *' of greater size
 C:\Users\User\source\repos\maturita\MaturitaOA\MaturitaOA\memory.h(9,33): warning C4312: 'type cast': conversion from 'DWORD' to 'LPCVOID' of greater size
   (compiling source file 'MaturitaOA.cpp')
       C:\Users\User\source\repos\maturita\MaturitaOA\MaturitaOA\memory.h(9,33):
       the template instantiation context (the oldest one first) is
-          C:\Users\User\source\repos\maturita\MaturitaOA\MaturitaOA\MaturitaOA.cpp(136,15):
+          C:\Users\User\source\repos\maturita\MaturitaOA\MaturitaOA\MaturitaOA.cpp(159,15):
           see reference to function template instantiation 'T ReadMemory<int>(HANDLE,DWORD)' being compiled
           with
           [

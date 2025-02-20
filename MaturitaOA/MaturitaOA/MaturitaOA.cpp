@@ -5,24 +5,7 @@
 #include "game.h"
 #include "memory.h"   
 
-uintptr_t GetBaseAddress(DWORD processID, const char* moduleName) {
-	uintptr_t baseAddress = 0;
-	HANDLE hSnap = CreateToolhelp32Snapshot(TH32CS_SNAPMODULE | TH32CS_SNAPMODULE32, processID);
-	if (hSnap != INVALID_HANDLE_VALUE) {
-		MODULEENTRY32W modEntry;
-		modEntry.dwSize = sizeof(modEntry);
-		if (Module32FirstW(hSnap, &modEntry)) {
-			do {
-				if (_wcsicmp(modEntry.szModule, std::wstring(moduleName, moduleName + strlen(moduleName)).c_str()) == 0) {
-					baseAddress = (uintptr_t)modEntry.modBaseAddr;
-					break;
-				}
-			} while (Module32NextW(hSnap, &modEntry));
-		}
-	}
-	CloseHandle(hSnap);
-	return baseAddress;
-}
+
 
 // Function to calculate the distance between two positions
 float CalculateDistance(const vec3_t& pos1, const vec3_t& pos2) {
@@ -96,6 +79,30 @@ void MoveMouse(float deltaX, float deltaY) {
 }
 
 
+// Get module base address
+uintptr_t GetModuleBaseAddress(DWORD procId, const wchar_t* modName)
+{
+	uintptr_t modBaseAddr = 0;
+	HANDLE hSnap = CreateToolhelp32Snapshot(TH32CS_SNAPMODULE | TH32CS_SNAPMODULE32, procId);
+	if (hSnap != INVALID_HANDLE_VALUE)
+	{
+		MODULEENTRY32 modEntry;
+		modEntry.dwSize = sizeof(modEntry);
+		if (Module32First(hSnap, &modEntry))
+		{
+			do
+			{
+				if (!_wcsicmp(modEntry.szModule, modName))
+				{
+					modBaseAddr = (uintptr_t)modEntry.modBaseAddr;
+					break;
+				}
+			} while (Module32Next(hSnap, &modEntry));
+		}
+	}
+	CloseHandle(hSnap);
+	return modBaseAddr;
+}
 
 
 
@@ -116,9 +123,25 @@ int main()
 		return 1;
 	}
 
+	// Get module base address
+	uintptr_t moduleBase = GetModuleBaseAddress(processID, L"openarena.exe");
+	if (!moduleBase) {
+		std::cerr << "Failed to get module base address!" << std::endl;
+		return 1;
+	}
+
+	// read health value
+	DWORD team_ptr = 0;
+	ReadProcessMemory(hProcess, (void*)(moduleBase + 0x01B4BB44), &team_ptr, sizeof(team_ptr), nullptr);
+	team_ptr = team_ptr + 0x104;
+	std::cout << "team Pointer: 0x" << std::hex << team_ptr << std::endl;
+	DWORD team = 0;
+	ReadProcessMemory(hProcess, (void*)team_ptr, &team, sizeof(team), nullptr);
+	std::cout << "team Value: " << std::dec << team << std::endl;
+
 	// Čtení paměti
 	//DWORD baseAddress = GetBaseAddress(processID, "openarena.exe");
-	DWORD baseTeamAddress = 0x0DBDF4A8; // Adresa týmu
+	DWORD baseTeamAddress = team_ptr; // Adresa týmu
 	DWORD offsetBetweenBots = 0x840; //Offset mezi boty
 
 	// Calculate the X-coordinate address relative to the player team address
@@ -191,9 +214,11 @@ int main()
 			}
 			else if (botTeamValue != 0) {
 				std::cout << "Bot " << (i + 1) << " is an ALLY. Team Value: " << botTeamValue << std::endl;
+				continue; 
 			}
 			else {
 				std::cout << "Bot " << (i + 1) << " is an EMPTY SLOT. Team Value: " << botTeamValue << std::endl;
+				continue;
 			}
 
 
@@ -230,22 +255,6 @@ int main()
 			// Calculate the directional vector to the closest enemy
 			vec3_t directionToEnemy = CalculateDirectionalVector(position, closestEnemyPosition);
 
-			// Normalize the directional vector (optional)
-			vec3_t normalizedDirection = NormalizeVector(directionToEnemy);
-
-			std::cout << "Closest Enemy: Bot " << closestEnemyIndex << std::endl;
-			std::cout << "Closest Enemy Position: "
-				<< "X = " << closestEnemyPosition.x << ", "
-				<< "Y = " << closestEnemyPosition.y << ", "
-				<< "Z = " << closestEnemyPosition.z << std::endl;
-			std::cout << "Directional Vector to Enemy: "
-				<< "X = " << directionToEnemy.x << ", "
-				<< "Y = " << directionToEnemy.y << ", "
-				<< "Z = " << directionToEnemy.z << std::endl;
-			std::cout << "Normalized Directional Vector: "
-				<< "X = " << normalizedDirection.x << ", "
-				<< "Y = " << normalizedDirection.y << ", "
-				<< "Z = " << normalizedDirection.z << std::endl;
 
 			// Calculate yaw and pitch angles
 			float yawToEnemy = CalculateYaw(directionToEnemy);
@@ -262,10 +271,12 @@ int main()
 			// Calculate the required mouse movement
 			float deltaYaw = yawToEnemy - yaw;   // Horizontal movement
 			float deltaPitch = pitchToEnemy - pitch; // Vertical movement
-
-
+			if (abs(deltaYaw) < 45 && abs(deltaPitch) < 30) {
 			// Simulate mouse movement
 			MoveMouse(-deltaYaw, deltaPitch);
+			}
+
+			
 
 
 		}
