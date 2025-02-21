@@ -64,6 +64,9 @@ float Clamp(float value, float min, float max) {
 
 #define MouseSens 7.0f
 
+// Global variable to keep track of the toggle state
+bool isCtrlPressed = false;
+
 // Function to simulate mouse movement
 void MoveMouse(float deltaX, float deltaY) {
 	// Clamp the deltas to the range [-10, 10]
@@ -76,7 +79,27 @@ void MoveMouse(float deltaX, float deltaY) {
 
 	// Simulate mouse movement
 	mouse_event(MOUSEEVENTF_MOVE, mouseDeltaX * MouseSens, mouseDeltaY * MouseSens, 0, 0);
+
+	// Check if the right mouse button is pressed
+	if (GetAsyncKeyState(VK_RBUTTON) & 0x8000) {
+		// Toggle the state of the left control key
+		isCtrlPressed = !isCtrlPressed;
+
+		// Simulate left control key press or release based on the toggle state
+		if (isCtrlPressed) {
+			keybd_event(VK_LCONTROL, 0, 0, 0); // Press left control key
+		}
+		else {
+			keybd_event(VK_LCONTROL, 0, KEYEVENTF_KEYUP, 0); // Release left control key
+		}
+
+		// Wait for the right mouse button to be released to avoid multiple toggles
+		while (GetAsyncKeyState(VK_RBUTTON) & 0x8000) {
+			Sleep(10);
+		}
+	}
 }
+
 
 
 // Get module base address
