@@ -4,7 +4,12 @@
 #include <iostream>
 #include <Windows.h>
 
+#define ENTITY_LIST_PTR_OFFSET 0x01B4BB44
 #define PLAYER_WRITABLE_ANGLES_OFFSET 0x8821F8
+
+#define    ANGLE2SHORT(x)    ((int)((x)*65536/360) & 65535)
+#define    SHORT2ANGLE(x)    ((x)*(360.0/65536))
+
 
 // usercmd_t is sent to the server each client frame: https://github.com/OpenArena/legacy/blob/3db79b091ce1d950d9cdcac0445a2134f49a6fc7/engine/openarena-engine-source-0.8.8/code/qcommon/q_shared.h#L1121
 typedef struct usercmd_s {
@@ -29,7 +34,7 @@ struct Entity {
 };
 
 const DWORD baseAddress = 0x00400000;
-const DWORD ENTITY_LIST_PTR_OFFSET = 0x01B4BB44;
+
 Entity* entityList;
 Entity* player;
 
@@ -77,45 +82,15 @@ void installHook(void* target, void* hook, DWORD* jumpBackAddress, int size) {
 	VirtualProtect(target, 5, oldProtect, &oldProtect);
 }
 
-void __declspec(naked) CL_CreateCmd_hook() {
-    __asm {
-        mov usercmd, eax
-        PUSHFD
-        PUSHAD
-    }
+void aimbot() { 
+    
+    // Variables to track the closest enemy
+    float closestDistance = FLT_MAX; // Initialize with a large value
+    int closestEnemyIndex = -1;
+    Vec3 closestEnemyPosition = { 0, 0, 0 };
 
-    __asm {
-        POPAD
-        POPFD
-        pop edi
-        pop ebp
-        ret 0x4
-    }
-}
-
-void mainloop() {
-
-    //Force OA to open console
-    AllocConsole();
-    static FILE* f;
-    freopen_s(&f, "CONOUT$", "w", stdout);
-
-    entityList = *(Entity**)(baseAddress + ENTITY_LIST_PTR_OFFSET);
-    player = entityList + 0;
-
-    // At the end of CL_CreateCmd, before the new usercmd is returned
-    void* CL_CreateCmd_end = (void*)(baseAddress + 0x00010722);
-
-	installHook(CL_CreateCmd_end, CL_CreateCmd_hook, nullptr, 5);
-
-    while (true) {
-
-        // Variables to track the closest enemy
-        float closestDistance = FLT_MAX; // Initialize with a large value
-        int closestEnemyIndex = -1;
-        Vec3 closestEnemyPosition = { 0, 0, 0 };
-
-        for (int i = 1; i < 16; i++) {
+    
+    for (int i = 1; i < 16; i++) {
             Entity* entity = (Entity*)((DWORD)entityList + i * 0x840);
 			if (entity->team == 0) {
 				continue;
@@ -176,9 +151,47 @@ void mainloop() {
             player->angles[0] = pitchToEnemy;
             *(float*)(0x400000 + PLAYER_WRITABLE_ANGLES_OFFSET + 0x4) += yawToEnemy - player->angles[1];
             player->angles[1] = yawToEnemy;
+
+            usercmd->angles[0] = ANGLE2SHORT(*(float*)(0x400000 + PLAYER_WRITABLE_ANGLES_OFFSET));
+            usercmd->angles[1] = ANGLE2SHORT(*(float*)(0x400000 + PLAYER_WRITABLE_ANGLES_OFFSET + 0x4));
    
         }
+}
+
+void __declspec(naked) CL_CreateCmd_hook() {
+    __asm {
+        mov usercmd, eax
+        PUSHFD
+        PUSHAD
     }
+
+	aimbot();
+
+    __asm {
+        POPAD
+        POPFD
+        pop edi
+        pop ebp
+        ret 0x4
+    }
+}
+
+void hack() {
+
+    //Force OA to open console
+    AllocConsole();
+    static FILE* f;
+    freopen_s(&f, "CONOUT$", "w", stdout);
+
+    entityList = *(Entity**)(baseAddress + ENTITY_LIST_PTR_OFFSET);
+    player = entityList + 0;
+
+    // At the end of CL_CreateCmd, before the new usercmd is returned
+    void* CL_CreateCmd_end = (void*)(baseAddress + 0x00010722);
+
+	installHook(CL_CreateCmd_end, CL_CreateCmd_hook, nullptr, 5);
+
+
 }
 BOOL APIENTRY DllMain( HMODULE hModule,
                        DWORD  ul_reason_for_call,
@@ -187,7 +200,7 @@ BOOL APIENTRY DllMain( HMODULE hModule,
     switch (ul_reason_for_call)
     {
     case DLL_PROCESS_ATTACH:
-		CreateThread(nullptr, 0, (LPTHREAD_START_ROUTINE)mainloop, nullptr, 0, nullptr);
+		CreateThread(nullptr, 0, (LPTHREAD_START_ROUTINE)hack, nullptr, 0, nullptr);
     case DLL_THREAD_ATTACH:
     case DLL_THREAD_DETACH:
     case DLL_PROCESS_DETACH:
