@@ -129,7 +129,6 @@
   <ItemGroup>
     <ClCompile Include="game.cpp" />
     <ClCompile Include="MaturitaOA.cpp" />
-    <ClCompile Include="memory.cpp" />
     <ClCompile Include="memory.h" />
   </ItemGroup>
   <ItemGroup>
