@@ -1,9 +1,19 @@
 // dllmain.cpp : Defines the entry point for the DLL application.
 #include "pch.h"
-#include <iostream>
 #include "vectors.h"
+#include <iostream>
+#include <Windows.h>
 
 #define PLAYER_WRITABLE_ANGLES_OFFSET 0x8821F8
+
+// usercmd_t is sent to the server each client frame: https://github.com/OpenArena/legacy/blob/3db79b091ce1d950d9cdcac0445a2134f49a6fc7/engine/openarena-engine-source-0.8.8/code/qcommon/q_shared.h#L1121
+typedef struct usercmd_s {
+    int				serverTime;
+    int				angles[3];
+    int 			buttons;
+    unsigned char			weapon;        
+    signed char	forwardmove, rightmove, upmove;
+} usercmd_t;
 
 struct Entity {
     uint8_t padding1[0x14];
@@ -22,6 +32,8 @@ const DWORD baseAddress = 0x00400000;
 const DWORD ENTITY_LIST_PTR_OFFSET = 0x01B4BB44;
 Entity* entityList;
 Entity* player;
+
+usercmd_t* usercmd;
 
 #ifndef M_PI
 #define M_PI 3.14159265358979323846
@@ -42,6 +54,45 @@ float CalculatePitch(const Vec3& direction) {
 
 }
 
+void installHook(void* target, void* hook, DWORD* jumpBackAddress, int size) {
+    DWORD oldProtect;
+    VirtualProtect(target, 5, PAGE_EXECUTE_READWRITE, &oldProtect);
+
+    //32 bit relative jump opcode is E9, takes 1 32 bit operand for jump offset
+    uint8_t jmpInstruction[5] = { 0xE9, 0x0, 0x0, 0x0, 0x0 };
+
+    //to fill out the last 4 bytes of jmpInstruction, we need the offset between 
+    //the payload function and the instruction immediately AFTER the jmp instruction
+    DWORD relAddr = (DWORD)hook - ((DWORD)target + sizeof(jmpInstruction));
+
+    if (jumpBackAddress != NULL) {
+        *jumpBackAddress = (DWORD)target + size;
+    }
+
+    memcpy(jmpInstruction + 1, &relAddr, 4);
+
+    //install the hook
+    memcpy(target, jmpInstruction, sizeof(jmpInstruction));
+
+	VirtualProtect(target, 5, oldProtect, &oldProtect);
+}
+
+void __declspec(naked) CL_CreateCmd_hook() {
+    __asm {
+        mov usercmd, eax
+        PUSHFD
+        PUSHAD
+    }
+
+    __asm {
+        POPAD
+        POPFD
+        pop edi
+        pop ebp
+        ret 0x4
+    }
+}
+
 void mainloop() {
 
     //Force OA to open console
@@ -51,6 +102,11 @@ void mainloop() {
 
     entityList = *(Entity**)(baseAddress + ENTITY_LIST_PTR_OFFSET);
     player = entityList + 0;
+
+    // At the end of CL_CreateCmd, before the new usercmd is returned
+    void* CL_CreateCmd_end = (void*)(baseAddress + 0x00010722);
+
+	installHook(CL_CreateCmd_end, CL_CreateCmd_hook, nullptr, 5);
 
     while (true) {
 
