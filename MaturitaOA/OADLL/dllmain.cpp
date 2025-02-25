@@ -1,4 +1,4 @@
-// dllmain.cpp : Defines the entry point for the DLL application.
+
 #include "pch.h"
 #include "vectors.h"
 #include <iostream>
@@ -7,9 +7,11 @@
 #define ENTITY_LIST_PTR_OFFSET 0x01B4BB44
 #define PLAYER_WRITABLE_ANGLES_OFFSET 0x8821F8
 
-#define    ANGLE2SHORT(x)    ((int)((x)*65536/360) & 65535)
-#define    SHORT2ANGLE(x)    ((x)*(360.0/65536))
+#define    ANGLE2SHORT(x) ((int)((x)*65536/360) & 65535)
+#define    SHORT2ANGLE(x) ((x)*(360.0/65536))
 
+#define    BUTTON_ATTACK 1
+#define    BUTTON_ANY 2048
 
 // usercmd_t is sent to the server each client frame: https://github.com/OpenArena/legacy/blob/3db79b091ce1d950d9cdcac0445a2134f49a6fc7/engine/openarena-engine-source-0.8.8/code/qcommon/q_shared.h#L1121
 typedef struct usercmd_s {
@@ -40,21 +42,21 @@ Entity* player;
 
 usercmd_t* usercmd;
 
+bool should_fire = false;
+
 #ifndef M_PI
 #define M_PI 3.14159265358979323846
 #endif
 
 // Function to calculate the yaw angle from a directional vector
 float CalculateYaw(const Vec3& direction) {
-    // Yaw is the angle in the X-Y plane (horizontal plane)
     return std::atan2(direction.y, direction.x) * (180.0f / M_PI); // Convert radians to degrees
 }
 
 // Function to calculate the pitch angle from a directional vector
 float CalculatePitch(const Vec3& direction) {
-    // Pitch is the angle in the vertical plane
     float horizontalDistance = std::sqrt(direction.x * direction.x + direction.y * direction.y);
-    return std::atan2(-direction.z, horizontalDistance) * (180.0f / M_PI); // Convert radians to degrees
+    return std::atan2(-direction.z, horizontalDistance) * (180.0f / M_PI); 
 
 
 }
@@ -89,6 +91,9 @@ void aimbot() {
     int closestEnemyIndex = -1;
     Vec3 closestEnemyPosition = { 0, 0, 0 };
 
+    if (GetAsyncKeyState(VK_LCONTROL) & 1) {
+        should_fire = !should_fire;
+    }
     
     for (int i = 1; i < 16; i++) {
             Entity* entity = (Entity*)((DWORD)entityList + i * 0x840);
@@ -96,6 +101,9 @@ void aimbot() {
 				continue;
 			}
 			if (entity->team == player->team) {
+				continue;
+			}
+			if (entity->health <= 0) {
 				continue;
 			}
 
@@ -154,6 +162,10 @@ void aimbot() {
 
             usercmd->angles[0] = ANGLE2SHORT(*(float*)(0x400000 + PLAYER_WRITABLE_ANGLES_OFFSET));
             usercmd->angles[1] = ANGLE2SHORT(*(float*)(0x400000 + PLAYER_WRITABLE_ANGLES_OFFSET + 0x4));
+
+            if (should_fire) {
+                usercmd->buttons |= (BUTTON_ANY | BUTTON_ATTACK);
+            }
    
         }
 }
