@@ -1,3 +1,4 @@
+//this is the internal solution utlizing almost the same code for the aimbot as the external one but the wallhack is going to be built only here
 
 #include "pch.h"
 #include "vectors.h"
@@ -48,12 +49,10 @@ bool should_fire = false;
 #define M_PI 3.14159265358979323846
 #endif
 
-// Function to calculate the yaw angle from a directional vector
 float CalculateYaw(const Vec3& direction) {
     return std::atan2(direction.y, direction.x) * (180.0f / M_PI); // Convert radians to degrees
 }
 
-// Function to calculate the pitch angle from a directional vector
 float CalculatePitch(const Vec3& direction) {
     float horizontalDistance = std::sqrt(direction.x * direction.x + direction.y * direction.y);
     return std::atan2(-direction.z, horizontalDistance) * (180.0f / M_PI); 
@@ -68,8 +67,7 @@ void installHook(void* target, void* hook, DWORD* jumpBackAddress, int size) {
     //32 bit relative jump opcode is E9, takes 1 32 bit operand for jump offset
     uint8_t jmpInstruction[5] = { 0xE9, 0x0, 0x0, 0x0, 0x0 };
 
-    //to fill out the last 4 bytes of jmpInstruction, we need the offset between 
-    //the payload function and the instruction immediately AFTER the jmp instruction
+    //to fill out the last 4 bytes of jmpInstruction, we need the offset between the payload function and the instruction immediately AFTER the jmp instruction
     DWORD relAddr = (DWORD)hook - ((DWORD)target + sizeof(jmpInstruction));
 
     if (jumpBackAddress != NULL) {
@@ -87,7 +85,7 @@ void installHook(void* target, void* hook, DWORD* jumpBackAddress, int size) {
 void aimbot() { 
     
     // Variables to track the closest enemy
-    float closestDistance = FLT_MAX; // Initialize with a large value
+    float closestDistance = FLT_MAX; 
     int closestEnemyIndex = -1;
     Vec3 closestEnemyPosition = { 0, 0, 0 };
 
@@ -107,24 +105,18 @@ void aimbot() {
 				continue;
 			}
 
-            //print entity team
             std::cout << "Entity " << i << " Team: " << (int)entity->team << std::endl;
 
-            //print entity position
             std::cout << "Entity " << i << " Position: "
                 << "X = " << entity->position.x << ", "
                 << "Y = " << entity->position.y << ", "
                 << "Z = " << entity->position.z << std::endl;
 
-            //print entity angles
             std::cout << "Entity " << i << " Angles: "
                 << "Pitch = " << entity->angles[0] << ", "
                 << "Yaw = " << entity->angles[1] << std::endl;
 
-            //print entity health
             std::cout << "Entity " << i << " Health: " << entity->health << std::endl;
-
-
 
             float distance = entity->position.distance(player->position);
 
@@ -138,12 +130,10 @@ void aimbot() {
             }
         }
 
-        // Print the closest enemy's information
         if (closestEnemyIndex != -1) {
-            // Calculate the directional vector to the closest enemy
+           
             Vec3 directionToEnemy = closestEnemyPosition - player->position;
 
-            // Calculate yaw and pitch angles
             float yawToEnemy = CalculateYaw(directionToEnemy);
             float pitchToEnemy = CalculatePitch(directionToEnemy);
 
@@ -170,17 +160,18 @@ void aimbot() {
         }
 }
 
-void __declspec(naked) CL_CreateCmd_hook() {
+//calling convention that will prevent the compiler from adding instrunctions at the start and end of the function that would mess with the registers
+void __declspec(naked) CL_CreateCmd_hook() { 
     __asm {
         mov usercmd, eax
-        PUSHFD
+		PUSHFD //push saves the state of the registers
         PUSHAD
     }
 
 	aimbot();
 
     __asm {
-        POPAD
+		POPAD //pop restores the state of the registers
         POPFD
         pop edi
         pop ebp
@@ -190,7 +181,7 @@ void __declspec(naked) CL_CreateCmd_hook() {
 
 void hack() {
 
-    //Force OA to open console
+    //This forces open arena to open its own console window where all the output is printed
     AllocConsole();
     static FILE* f;
     freopen_s(&f, "CONOUT$", "w", stdout);
@@ -202,7 +193,6 @@ void hack() {
     void* CL_CreateCmd_end = (void*)(baseAddress + 0x00010722);
 
 	installHook(CL_CreateCmd_end, CL_CreateCmd_hook, nullptr, 5);
-
 
 }
 BOOL APIENTRY DllMain( HMODULE hModule,
