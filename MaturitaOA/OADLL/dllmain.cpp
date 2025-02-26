@@ -4,6 +4,7 @@
 #include "vectors.h"
 #include <iostream>
 #include <Windows.h>
+#include <gl/GL.h>
 
 #define ENTITY_LIST_PTR_OFFSET 0x01B4BB44
 #define PLAYER_WRITABLE_ANGLES_OFFSET 0x8821F8
@@ -19,8 +20,8 @@ typedef struct usercmd_s {
     int				serverTime;
     int				angles[3];
     int 			buttons;
-    unsigned char			weapon;        
-    signed char	forwardmove, rightmove, upmove;
+    unsigned char	weapon;        
+    signed char	    forwardmove, rightmove, upmove;
 } usercmd_t;
 
 struct Entity {
@@ -43,7 +44,9 @@ Entity* player;
 
 usercmd_t* usercmd;
 
-bool should_fire = false;
+bool aimbot_enabled = true;
+bool triggerbot_enabled = false;
+bool wallhack_enabled = true;
 
 #ifndef M_PI
 #define M_PI 3.14159265358979323846
@@ -58,6 +61,41 @@ float CalculatePitch(const Vec3& direction) {
     return std::atan2(-direction.z, horizontalDistance) * (180.0f / M_PI); 
 
 
+}
+
+void drawBoundingBox(float x, float y, float width, float height, float red, float green, float blue) {
+    // saves the current opengl satate
+    glPushAttrib(GL_ALL_ATTRIB_BITS); // saves all attributes like color andline width
+    glPushMatrix();  // saves the current transformation matrices 
+
+    // set state to what we need
+    glMatrixMode(GL_PROJECTION);
+    glLoadIdentity();
+
+    glMatrixMode(GL_MODELVIEW);
+    glLoadIdentity();
+    
+    glDisable(GL_DEPTH_TEST);
+    glDisable(GL_TEXTURE_2D);
+    glDisable(GL_LIGHTING);
+    glDisable(GL_BLEND);
+    glDisable(GL_ALPHA_TEST);
+    glDisable(GL_FOG);
+    glDisable(GL_CULL_FACE);
+    glDisable(GL_STENCIL_TEST);
+
+    // draw a box outline
+    glBegin(GL_LINE_LOOP);
+    glColor3f(red, green, blue);
+    glVertex2f(x, y);
+    glVertex2f(x + width, y);
+    glVertex2f(x + width, y + height);
+    glVertex2f(x, y + height);
+    glEnd();
+
+    // restore the saved opengl state
+    glPopMatrix();
+    glPopAttrib();  
 }
 
 void installHook(void* target, void* hook, DWORD* jumpBackAddress, int size) {
@@ -83,15 +121,18 @@ void installHook(void* target, void* hook, DWORD* jumpBackAddress, int size) {
 }
 
 void aimbot() { 
+	if (GetAsyncKeyState(VK_F1) & 1) {
+		aimbot_enabled = !aimbot_enabled;
+	}
+
+	if (!aimbot_enabled) {
+		return;
+	}
     
     // Variables to track the closest enemy
     float closestDistance = FLT_MAX; 
     int closestEnemyIndex = -1;
     Vec3 closestEnemyPosition = { 0, 0, 0 };
-
-    if (GetAsyncKeyState(VK_LCONTROL) & 1) {
-        should_fire = !should_fire;
-    }
     
     for (int i = 1; i < 16; i++) {
             Entity* entity = (Entity*)((DWORD)entityList + i * 0x840);
@@ -133,6 +174,7 @@ void aimbot() {
         if (closestEnemyIndex != -1) {
            
             Vec3 directionToEnemy = closestEnemyPosition - player->position;
+			directionToEnemy.z -= 15.0f; //offset the calculation a bit to aim at the chest instead of the head so we can still hit enemies if they crouch
 
             float yawToEnemy = CalculateYaw(directionToEnemy);
             float pitchToEnemy = CalculatePitch(directionToEnemy);
@@ -153,11 +195,20 @@ void aimbot() {
             usercmd->angles[0] = ANGLE2SHORT(*(float*)(0x400000 + PLAYER_WRITABLE_ANGLES_OFFSET));
             usercmd->angles[1] = ANGLE2SHORT(*(float*)(0x400000 + PLAYER_WRITABLE_ANGLES_OFFSET + 0x4));
 
-            if (should_fire) {
-                usercmd->buttons |= (BUTTON_ANY | BUTTON_ATTACK);
-            }
-   
         }
+}
+
+void triggerbot() {
+    if (GetAsyncKeyState(0x46) & 1) { //for some reason F key and all other letters are stored as hexadecimals
+        triggerbot_enabled = !triggerbot_enabled;
+    }
+
+    if (!triggerbot_enabled) {
+        return;
+    }
+
+    usercmd->buttons |= (BUTTON_ANY | BUTTON_ATTACK);
+    
 }
 
 //calling convention that will prevent the compiler from adding instrunctions at the start and end of the function that would mess with the registers
@@ -169,6 +220,7 @@ void __declspec(naked) CL_CreateCmd_hook() {
     }
 
 	aimbot();
+	triggerbot();
 
     __asm {
 		POPAD //pop restores the state of the registers
@@ -176,6 +228,98 @@ void __declspec(naked) CL_CreateCmd_hook() {
         pop edi
         pop ebp
         ret 0x4
+    }
+}
+
+void wallhack() {
+    if (GetAsyncKeyState(VK_F2) & 1) {
+        wallhack_enabled = !wallhack_enabled;
+    }
+
+    if (!wallhack_enabled) {
+        return;
+    }
+
+    for (int i = 1; i < 16; i++) {
+        Entity* entity = (Entity*)((DWORD)entityList + i * 0x840);
+        if (entity->team == 0) {
+            continue;
+        }
+
+        if (entity->health <= 0) {
+            continue;
+        }
+
+        Vec3 directionToEntity = entity->position - player->position;
+
+        float yawToEntity = CalculateYaw(directionToEntity) - player->angles[1];
+        if (yawToEntity > 180) {
+            yawToEntity -= 360;
+        }
+        else if (yawToEntity < -180) {
+            yawToEntity += 360;
+        }
+
+        float pitchToEntity = CalculatePitch(directionToEntity) - player->angles[0];
+
+        float FOV = 50.0f;
+
+        float x = (-yawToEntity / FOV); //opengl uses 1 going up and to the left while open arena uses -1 going up and to the left
+        float y = (-pitchToEntity / ((3.0f / 4.0f) * FOV)); //specific for the aspect ratio 4:3
+
+         
+        float scale = 100.0f / (directionToEntity.length() + 50.0f);
+		
+        float width = 0.5f * scale;
+		float height = 2.0f * width;
+
+		//rectangles were drawn even if a player was out of screen so this checks if the player is on the screen
+        //since the pitch and yaw ToEntiy are translated into a coordinate system ranging from -1 to 1
+        if (x + width/2 < -1 || x - width/2 > 1 || y + height*0.15 < -1 || y - height*0.85 > 1) {
+            continue;
+        }
+
+		std::cout << "Entity " << i << " Position: "
+			<< "X = " << entity->position.x << ", "
+			<< "Y = " << entity->position.y << ", "
+			<< "Z = " << entity->position.z << std::endl;
+
+		std::cout << "Player " << i << " Position: " 
+            << "X = " << player->position.x << ", "
+            << "Y = " << player->position.y << ", "
+            << "Z = " << player->position.z << std::endl;
+
+		std::cout << yawToEntity << std::endl;
+		std::cout << pitchToEntity << std::endl;
+		
+
+        //x and y are the position of player's head by default and boudning box is scaled from the left bottom corner to the top right corner so we have to adjust
+        if (entity->team == player->team) {
+			drawBoundingBox(x - width / 2, y - height * 0.85, width, height, 0.0, 0.0, 1.0); 
+        }
+        else {
+            drawBoundingBox(x - width / 2, y - height * 0.85, width, height, 1.0, 0.0, 0.0);
+        }
+
+    }
+}
+
+DWORD SDL_GL_SwapBuffersJumpBackAddress = 0x123;
+void __declspec(naked) SDL_GL_SwapBuffers_hook() {
+    __asm {
+        PUSHFD
+        PUSHAD
+    }
+
+	wallhack();
+
+    __asm {
+        POPAD
+        POPFD
+        push ebp
+        mov ebp, esp
+        sub esp, 0x8
+        jmp[SDL_GL_SwapBuffersJumpBackAddress]
     }
 }
 
@@ -194,7 +338,11 @@ void hack() {
 
 	installHook(CL_CreateCmd_end, CL_CreateCmd_hook, nullptr, 5);
 
+    void* SDL_GL_SwapBuffers = GetProcAddress(GetModuleHandleA("SDL.dll"), "SDL_GL_SwapBuffers");
+
+    installHook(SDL_GL_SwapBuffers, SDL_GL_SwapBuffers_hook, &SDL_GL_SwapBuffersJumpBackAddress, 6);
 }
+
 BOOL APIENTRY DllMain( HMODULE hModule,
                        DWORD  ul_reason_for_call,
                        LPVOID lpReserved)
