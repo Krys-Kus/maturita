@@ -18,8 +18,8 @@ Přehodnocení, nejdřív udělat aimbot, jelikož jsem našel 3D souřadnice a 
     - [x] Rozlišení všech hráčů v lobby
     - [x] Adresa pozice nepřátel
     - [ ] Adresa _Draw funkce na zobrazení 2D tvarů
-    - [ ] Spojit dohromady a sepsat kód
-    - [ ] Wallhack dokončen
+    - [x] Spojit dohromady a sepsat kód
+    - [x] Wallhack dokončen
 
 ## Aimbot
 - Využít adresu, která ukládá pozici nepřítele
