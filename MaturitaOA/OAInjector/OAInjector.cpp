@@ -1,9 +1,30 @@
 #include <iostream>
 #include <Windows.h>
 
-int main()
+bool GetAbsolutePath(const char* relative_path, char* absolute_path, size_t buffer_size) {
+	if (GetFullPathNameA(relative_path, buffer_size, absolute_path, nullptr) == 0) {
+		std::cerr << "Failed to resolve absolute path for: " << relative_path << std::endl;
+		return false;
+	}
+	return true;
+}
+
+int main(int argc, char* argv[]) 
 {
-	const char* dll_path = "C:\\Users\\User\\source\\repos\\maturita\\MaturitaOA\\Debug\\OADLL.dll";
+	if (argc < 2) {
+		std::cerr << "Usage: " << argv[0] << " <path_to_dll>" << std::endl;
+		return 1;
+	}
+
+	const char* relative_dll_path = argv[1]; //used for dynamic pathing across devices, this one is needed since the one below works only for my device
+
+	char dll_path[MAX_PATH];
+
+	GetAbsolutePath(relative_dll_path, dll_path, MAX_PATH);
+
+	std::cout << "DLL path: " << dll_path << "\n";
+
+	//const char* dll_path = "C:\\Users\\User\\source\\repos\\maturita\\MaturitaOA\\Debug\\OADLL.dll";
 
 	HWND hwnd = FindWindowA(NULL, "OpenArena");
 	if (hwnd == NULL) {
