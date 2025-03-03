@@ -1,6 +1,6 @@
 # Maturita
 
-Tyto cheaty byly vytvořeny pouze pro studijní účely, bez požkození ostatních hráčů. Žádným způsobem nepodporuji jejich zneužití v online zápasech proti pravým hráčům. 
+Tyto cheaty byly vytvořeny pouze pro studijní účely, bez poškození ostatních hráčů. Žádným způsobem nepodporuji jejich zneužití v online zápasech proti pravým hráčům. 
 
 Níže nalezenete návod k instalaci, všechny odkazy nutné k instalaci a použití. Tento návod je uveden i technické dokumentaci mé práce.
 
