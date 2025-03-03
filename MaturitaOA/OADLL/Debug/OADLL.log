@@ -1,0 +1,20 @@
+﻿  dllmain.cpp
+C:\Users\User\source\repos\maturita\MaturitaOA\OADLL\vectors.h(30,20): warning C4244: 'return': conversion from 'double' to 'float', possible loss of data
+  (compiling source file '/dllmain.cpp')
+  
+C:\Users\User\source\repos\maturita\MaturitaOA\OADLL\vectors.h(34,20): warning C4244: 'return': conversion from 'double' to 'float', possible loss of data
+  (compiling source file '/dllmain.cpp')
+  
+C:\Users\User\source\repos\maturita\MaturitaOA\OADLL\dllmain.cpp(56,49): warning C4244: 'return': conversion from 'double' to 'float', possible loss of data
+  (compiling source file '/dllmain.cpp')
+  
+C:\Users\User\source\repos\maturita\MaturitaOA\OADLL\dllmain.cpp(61,57): warning C4244: 'return': conversion from 'double' to 'float', possible loss of data
+  (compiling source file '/dllmain.cpp')
+  
+C:\Users\User\source\repos\maturita\MaturitaOA\OADLL\dllmain.cpp(298,37): warning C4244: 'argument': conversion from 'double' to 'float', possible loss of data
+  (compiling source file '/dllmain.cpp')
+  
+C:\Users\User\source\repos\maturita\MaturitaOA\OADLL\dllmain.cpp(301,46): warning C4244: 'argument': conversion from 'double' to 'float', possible loss of data
+  (compiling source file '/dllmain.cpp')
+  
+  OADLL.vcxproj -> C:\Users\User\Source\Repos\maturita\MaturitaOA\Debug\OADLL.dll
