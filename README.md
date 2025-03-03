@@ -1,33 +1,20 @@
 # Maturita
-## Triggerbot
-Přehodnocení, nejdřív udělat aimbot, jelikož jsem našel 3D souřadnice a úhel pohledu před Crosshairname, takže podmínku aktivace triggerbota můžu udělat locknutí se na bota.
 
-- Plán mít do dvou týdnů hotovo
-- Zjistit jestli se dívám na nepřítele přes CharacterID
-- Najít trigger funkci u zbraní, která bude zavolána pokud se jako hráč dívám na nepřítele
-  - [x] Adresa CharacterID
-    - [x] Rozlišit spoluhráče od nepřítele
-  - [ ] Adresa weapon trigger
-  - [x] Spojit dohromady a sepsat kód
-  - [x] Triggerbot dokončen
+Tyto cheaty byly vytvořeny pouze pro studijní účely, bez požkození ostatních hráčů. Žádným způsobem nepodporuji jejich zneužití v online zápasech proti pravým hráčům. 
 
-## Wallhack
-- Chtěl bych wallhack dělat po triggerbotu, ale je možné, že budu nejdříve dělat aimbot
-- Vužít adresu CharacterID a rozšířit jí na celé lobby
-- Najít adresu pozice nepřítele, okolo které můžu vykreslit obdelník na jejich zvýraznění
-    - [x] Rozlišení všech hráčů v lobby
-    - [x] Adresa pozice nepřátel
-    - [ ] Adresa _Draw funkce na zobrazení 2D tvarů
-    - [x] Spojit dohromady a sepsat kód
-    - [x] Wallhack dokončen
+Níže nalezenete návod k instalaci, všechny odkazy nutné k instalaci a použití. Tento návod je uveden i technické dokumentaci mé práce.
 
-## Aimbot
-- Využít adresu, která ukládá pozici nepřítele
-- Najít adresu, která ukládá moji vlastní pozici, abych ji mohl srovnt s pozicí nejbližšího nepřítele
-- Najít adresu, která ukládá informaci o tom, kam se jako hráč dívám
-- Sepsat kód, který bude simulovat pohyb myši směrem k nejbližšímu nepříteli
-    - [x] Adresa pozici hráče
-    - [x] Adresa pohledu/kamery
-    - [x] Počítání a srovnávání outputových souřadnic
-    - [x] Spojit dohromady a sepsat kód
-    - [x] Aimbot dokončen
+Odkaz, k třetí straně poskytující verzi 0.8.8 OpenAreny pro Windows: https://sourceforge.net/projects/oarena/files/
+
+Cheaty půjdou spustit pouze na operačním systému Windows.
+
+K instalaci je zapotřebí z repozitáře stáhnout soubory OADLL.dll a OAInjector.exe, které se nachází ve složce Debug. Pro jednodušší spuštění je doporučeno je stáhnout do stejné složky, nebo je do jedné přemístit. Dále je nutné stáhnout a extraktovat soubor openarena-0.8.8.zip, ve kterém je kopie oficiálně distribuované verze OpenAreny zkompilované pro Windows, pro kterou tyto cheaty fungují, tento odkaz ke stažení tohoto zip souboru naleznete na odkazu poskytnutém v README repozitáře. Jedná se o třetí stranu jelikož, oficiální stránky OpenAreny v době vypracování práce nefungují. Buďto celý extraktovaný soubor nebo pouze openarena.exe umístěte na plochu a z ní hru spouštějte. Je to nejjednodušší způsob jak se vyhnout problémům s přístupem administrátora.
+
+Spusťte openarena.exe a začněte hru na lokálním serveru. V nabídce herních map vyberte typ týmový typ hry, nejvíce je doporučen Team Deathmatch nebo Capture The Flag. Přidejte počítačem ovládané hráče, boty, před začátkem hry nebo po jejím spuštění. Jakmile hra běží a jsou přítomni nepřátele a spoluhráči můžete manuálně přetáhnout soubor OADLL.dll do souboru OAInjector.exe, tím se cheaty spustí a měla by se otevřít konzole OpenAreny, ve které budou vypisovány informace o přítomných hráčích. Můžete se vrátit do hry a cheaty používat. 
+
+Během hry je možné jednotlivé cheaty vypnout a zapnout. Aimbot se dá vypnout stisknutím klávesy F1 a wallhack klávesou F2. Triggerbot je nutné spouštět manuálně klávesou F. Triggerbot je možné spustit a vypnout během toho co se aimbot zaměřuje na hráče.
+
+
+
+
+
