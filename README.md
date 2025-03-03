@@ -4,6 +4,8 @@ Tyto cheaty byly vytvořeny pouze pro studijní účely, bez požkození ostatn�
 
 Níže nalezenete návod k instalaci, všechny odkazy nutné k instalaci a použití. Tento návod je uveden i technické dokumentaci mé práce.
 
+Mimo jiné je v repozitáři nahrán cheat table pro Cheat Engine, který jsem používal při hledání adres.
+
 Odkaz, k třetí straně poskytující verzi 0.8.8 OpenAreny pro Windows: https://sourceforge.net/projects/oarena/files/
 
 Cheaty půjdou spustit pouze na operačním systému Windows.
